@@ -8,54 +8,38 @@ class EmployeeLogs extends React.Component {
     let allPairedLogs = [];
 
     data.forEach((row, index) => {
-
       const { id, logs } = row;
       let pairedLogs = {};
       let loginTime = null;
-      let prevDate = null;
-      // allPairedLogs.push([{id: id}]);
+      let currentDate = null;
+
       Object.keys(logs).forEach((key, index) => {
         const currentDay = logs[key];
         const currentTime = currentDay[0].time;
 
         if (currentTime.length > 1) {
-
-          // console.info(currentTime)
           pairedLogs[key] = [
-            { date: currentDay[0].date - 1 + 1, time: [currentTime[0], currentTime[1]] },
+            { date: currentDay[0].date, time: [currentTime[0], currentTime[1]] },
           ];
         } else {
-
-
-          // Check if the day already has a paired log
-          if (allPairedLogs.some(log => log.date === currentDay[0].date)) {
-            return; // Skip this day
-          }
-
           if (!loginTime) {
             loginTime = currentTime[0];
+            currentDate = currentDay[0].date;
           } else {
             pairedLogs[key] = [
-              { date: currentDay[0].date - 1, time: [loginTime, currentTime[0]] },
+              { date: currentDate, time: [loginTime, currentTime[0]] },
             ];
             loginTime = null;
           }
-
-          if (currentDay[0].time.length > 1) {
-            loginTime = currentDay[0].time[1];
-          }
         }
-
       });
 
       allPairedLogs.push({ id, logs: pairedLogs });
-      // allPairedLogs = [,...allPairedLogs, ...Object.values(pairedLogs)];
-      // console.info(pairedLogs);
     });
 
-
     return allPairedLogs;
-  };
+};
+
 
   render() {
     const pairedLogs = this.pairLogs();
