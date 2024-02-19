@@ -14,7 +14,7 @@ const App = () => {
       const workbook = XLSX.read(data, { type: "array" });
 
       // Specify the sheet name you want to read
-      const sheetName = "bio";
+      const sheetName = "Attend. Logs";
       const worksheet = workbook.Sheets[sheetName];
 
       // Convert the selected sheet to JSON
@@ -77,60 +77,48 @@ const App = () => {
   };
   const pairLogs = (data) => {
     let allPairedLogs = [];
-  
     data.forEach((row) => {
       const { employeeId, employeeName, employeeDept, logs } = row;
       let pairedLogs = {};
       let loginTime = null;
       let currentDate = null;
-      let lastDate = null;
+      let usedTimes = {}; // Keep track of used times
+
       Object.keys(logs).forEach((key) => {
-        const currentLog = logs[key];
-        const currentTime = currentLog.loggedTime;
-        const currentDay = currentLog.date;
-        if (currentTime.length === 2) {
-          // If there are two log times, pair them as login and logout
-          pairedLogs[currentDay] = {
-            date: currentDay,
-            loggedTime: currentTime,
-          };
-        } else {
-          // If there's only one log time, check if it's a login or logout
-          if (!loginTime) {
-            loginTime = currentTime[0];
-            lastDate = currentDay;
+          const currentLog = logs[key];
+          const currentTime = currentLog.loggedTime;
+          const currentDay = currentLog.date;
+
+          if (currentTime.length > 1) {
+              pairedLogs[key] = [{ date: currentDay, time: [currentTime[0], currentTime[1]] }];
+              // Mark used times
+              usedTimes[currentTime[0]] = true;
+              usedTimes[currentTime[1]] = true;
           } else {
-            pairedLogs[lastDate] = {
-              date: lastDate,
-              loggedTime: [loginTime, currentTime[0]],
-            };
-            loginTime = null;
+              if (!usedTimes[currentTime[0]]) {
+                  if (!loginTime) {
+                      loginTime = currentTime[0];
+                      currentDate = currentDay;
+                  } else {
+                      pairedLogs[key] = [{ date: currentDate, time: [loginTime, currentTime[0]] }];
+                      loginTime = null;
+                  }
+                  // Mark used time
+                  usedTimes[currentTime[0]] = true;
+              } else {
+                  // If the time is already used, add it as a standalone time
+                  pairedLogs[key] = [{ date: currentDay, time: [currentTime[0]] }];
+              }
           }
-        }
       });
-  
-      // Add any remaining login time if the data ends with a login
-      if (loginTime) {
-        pairedLogs[lastDate] = {
-          date: lastDate,
-          loggedTime: [loginTime],
-        };
-      }
-  
-      allPairedLogs.push({
-        employeeId,
-        employeeName,
-        employeeDept,
-        logs: pairedLogs,
-      });
-    });
-  
-    setNewRecords( allPairedLogs);
-  };   
-   
-  
-  
-  
+
+      allPairedLogs.push({ employeeId, employeeName, employeeDept, pairedLogs });
+  });
+
+    setNewRecords(allPairedLogs)
+};
+
+
   return (
     <div>
       <hr />
@@ -178,10 +166,10 @@ const App = () => {
             ))}
           </div>
           <div className="col">
-            <p className="text-success">Modified</p>
+            <p className="text-success">Modified</p> 
             {newRecords.map((log, index) => (
-              <div key={index}>
-                {Object.values(log.logs).length > 0 && (
+              <div key={index}> 
+                {Object.values(log.pairedLogs).length > 0 && (
                   <>
                     <h6>Employee ID: {log.employeeId}</h6>
                     <table className="table">
@@ -193,11 +181,11 @@ const App = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {Object.values(log.logs).map((row, index) => (
-                          <tr key={index}>
-                            <td>{JSON.stringify(row)}</td>
-                            {/* <td>{row[0].time[0]}</td>
-                            <td>{row[0].time[1]}</td> */}
+                        {Object.values(log.pairedLogs).map((row, index) => (
+                          <tr key={index}> 
+                            <td>{row[0].date}</td>
+                            <td>{row[0].time[0]}</td>
+                            <td>{row[0].time[1]}</td>
                           </tr>
                         ))}
                       </tbody>
