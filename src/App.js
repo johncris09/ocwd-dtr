@@ -14,7 +14,7 @@ const App = () => {
       const workbook = XLSX.read(data, { type: "array" });
 
       // Specify the sheet name you want to read
-      const sheetName = "Attend. Logs";
+      const sheetName = "bio";
       const worksheet = workbook.Sheets[sheetName];
 
       // Convert the selected sheet to JSON
@@ -69,93 +69,144 @@ const App = () => {
         }
       }
     });
- 
+
+    console.info(empLog);
+    pairLogs(empLog);
 
     return empLog;
   };
- 
+  const pairLogs = (data) => {
+    let allPairedLogs = [];
+  
+    data.forEach((row) => {
+      const { employeeId, employeeName, employeeDept, logs } = row;
+      let pairedLogs = {};
+      let loginTime = null;
+      let currentDate = null;
+      let lastDate = null;
+      Object.keys(logs).forEach((key) => {
+        const currentLog = logs[key];
+        const currentTime = currentLog.loggedTime;
+        const currentDay = currentLog.date;
+        if (currentTime.length === 2) {
+          // If there are two log times, pair them as login and logout
+          pairedLogs[currentDay] = {
+            date: currentDay,
+            loggedTime: currentTime,
+          };
+        } else {
+          // If there's only one log time, check if it's a login or logout
+          if (!loginTime) {
+            loginTime = currentTime[0];
+            lastDate = currentDay;
+          } else {
+            pairedLogs[lastDate] = {
+              date: lastDate,
+              loggedTime: [loginTime, currentTime[0]],
+            };
+            loginTime = null;
+          }
+        }
+      });
+  
+      // Add any remaining login time if the data ends with a login
+      if (loginTime) {
+        pairedLogs[lastDate] = {
+          date: lastDate,
+          loggedTime: [loginTime],
+        };
+      }
+  
+      allPairedLogs.push({
+        employeeId,
+        employeeName,
+        employeeDept,
+        logs: pairedLogs,
+      });
+    });
+  
+    setNewRecords( allPairedLogs);
+  };   
+   
+  
+  
+  
   return (
     <div>
       <hr />
       <input type="file" onChange={handleFileUpload} accept=".xlsx, .xls" />
       <hr />
-      {/* {JSON.stringify(records)} */}
-      <div className="row">
-        <div className="col">
-          {records.map((log, index) => (
-            <div key={index}>
-              {/* <ul> */}
-              {Object.values(log.logs).length > 0 && (
-                <>
-                  <h6>Employee ID: {log.employeeId}</h6>
-                  <table className="table">
-                    <thead>
-                      <tr>
-                        <td>Date</td>
-                        <td>Logged Time</td>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {Object.values(log.logs).map((row, index) => (
-                        <tr key={index}>
-                          <td>{row.date}</td>
-                          <td>
-                            <table className="table table-bordered my-auto">
-                              <tbody>
-                                <tr>
-                                  {row.loggedTime.map((item, index) => (
-                                    <td key={index}>{item} </td>
-                                  ))}
-                                </tr>
-                              </tbody>
-                            </table>
-                          </td>
+      <div className="container">
+        <div className="row">
+          <div className="col">
+            <p className="text-danger">Unmodified</p>
+            {records.map((log, index) => (
+              <div key={index}>
+                {/* <ul> */}
+                {Object.values(log.logs).length > 0 && (
+                  <>
+                    <h6>Employee ID: {log.employeeId}</h6>
+                    <table className="table">
+                      <thead>
+                        <tr>
+                          <td>Date</td>
+                          <td>Logged Time</td>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </>
-              )}
-            </div>
-          ))}
-        </div>
-        <div className="col">
-          {newRecords.map((log, index) => (
-            <div key={index}>
-              {/* <ul> */}
-              {Object.values(log.logs).length > 0 && (
-                <>
-                  <h6>Employee ID: {log.employeeId}</h6>
-                  <table className="table">
-                    <thead>
-                      <tr>
-                        <td>Date</td>
-                        <td>Logged Time</td>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {Object.values(log.logs).map((row, index) => (
-                        <tr key={index}>
-                          <td>{row.date}</td>
-                          <td>
-                            <table className="table table-bordered my-auto">
-                              <tbody>
-                                <tr>
-                                  {row.loggedTime.map((item, index) => (
-                                    <td key={index}>{item} </td>
-                                  ))}
-                                </tr>
-                              </tbody>
-                            </table>
-                          </td>
+                      </thead>
+                      <tbody>
+                        {Object.values(log.logs).map((row, index) => (
+                          <tr key={index}>
+                            <td>{row.date}</td>
+                            <td>
+                              <table className="table table-bordered my-auto">
+                                <tbody>
+                                  <tr>
+                                    {row.loggedTime.map((item, index) => (
+                                      <td key={index}>{item} </td>
+                                    ))}
+                                  </tr>
+                                </tbody>
+                              </table>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </>
+                )}
+              </div>
+            ))}
+          </div>
+          <div className="col">
+            <p className="text-success">Modified</p>
+            {newRecords.map((log, index) => (
+              <div key={index}>
+                {Object.values(log.logs).length > 0 && (
+                  <>
+                    <h6>Employee ID: {log.employeeId}</h6>
+                    <table className="table">
+                      <thead>
+                        <tr>
+                          <td>Date</td>
+                          <td>Login </td>
+                          <td>Logout </td>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </>
-              )}
-            </div>
-          ))}
+                      </thead>
+                      <tbody>
+                        {Object.values(log.logs).map((row, index) => (
+                          <tr key={index}>
+                            <td>{JSON.stringify(row)}</td>
+                            {/* <td>{row[0].time[0]}</td>
+                            <td>{row[0].time[1]}</td> */}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
